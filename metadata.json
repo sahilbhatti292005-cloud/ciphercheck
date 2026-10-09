@@ -1,0 +1,6 @@
+{
+  "name": "Password Strength Analyzer",
+  "description": "A client-side cybersecurity utility for analyzing password strength, entropy, and character composition with zero network tracking.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

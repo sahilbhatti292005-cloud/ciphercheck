@@ -1,0 +1,1529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Password Strength Analyzer</title>
+  <meta name="description" content="A client-side cybersecurity utility for analyzing password strength, entropy, and character composition with zero network tracking." />
+  <meta property="og:title" content="Password Strength Analyzer" />
+  <meta property="og:description" content="A client-side cybersecurity utility for analyzing password strength, entropy, and character composition with zero network tracking." />
+  <meta property="og:type" content="website" />
+  <style>
+    /* CSS Reset and Design Tokens */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg-page: #f8fafc;
+      --bg-surface: #ffffff;
+      --bg-subtle: #f1f5f9;
+      --border-color: #e2e8f0;
+      --border-focus: #2563eb;
+      
+      --text-primary: #0f172a;
+      --text-secondary: #334155;
+      --text-muted: #64748b;
+      --text-subtle: #94a3b8;
+
+      /* Semantic Status Colors */
+      --color-neutral: #cbd5e1;
+      --color-vweak: #dc2626;
+      --color-weak: #ef4444;
+      --color-medium: #d97706;
+      --color-strong: #16a34a;
+      --color-vstrong: #059669;
+
+      /* Subtle badge / alert backgrounds */
+      --bg-vweak: #fef2f2;
+      --border-vweak: #fecaca;
+      --bg-weak: #fff1f2;
+      --border-weak: #fecdd3;
+      --bg-medium: #fffbeb;
+      --border-medium: #fde68a;
+      --bg-strong: #f0fdf4;
+      --border-strong: #bbf7d0;
+      --bg-vstrong: #ecfdf5;
+      --border-vstrong: #a7f3d0;
+
+      --radius-sm: 6px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--bg-page);
+      color: var(--text-primary);
+      line-height: 1.4;
+      -webkit-font-smoothing: antialiased;
+      padding: 0.65rem 1.25rem;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+
+    .container {
+      max-width: 1440px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    /* Header styling */
+    header {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 0.45rem 1rem;
+      margin-bottom: 0.65rem;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+    }
+
+    .brand-icon {
+      width: 32px;
+      height: 32px;
+      background-color: #0f172a;
+      color: #ffffff;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .brand-text h1 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      letter-spacing: -0.01em;
+      line-height: 1.2;
+    }
+
+    .brand-text p {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      line-height: 1.2;
+    }
+
+    .privacy-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-color);
+      padding: 0.25rem 0.65rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.725rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+
+    /* Section Cards */
+    .card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 0.85rem 1.1rem;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .card-title {
+      font-size: 0.925rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 0.15rem;
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+    }
+
+    .card-subtitle {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-bottom: 0.65rem;
+    }
+
+    /* Input Controls */
+    .input-label {
+      display: block;
+      font-size: 0.775rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 0.35rem;
+    }
+
+    .input-group {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .password-field {
+      width: 100%;
+      height: 42px;
+      padding: 0.4rem 7rem 0.4rem 0.85rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 0.95rem;
+      color: var(--text-primary);
+      background-color: var(--bg-surface);
+      border: 1.5px solid var(--border-color);
+      border-radius: var(--radius-md);
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .password-field:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    }
+
+    .input-actions {
+      position: absolute;
+      right: 0.4rem;
+      display: flex;
+      align-items: center;
+      gap: 0.2rem;
+    }
+
+    .btn-icon {
+      height: 30px;
+      padding: 0 0.45rem;
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.25rem;
+      font-size: 0.725rem;
+      font-weight: 500;
+      transition: all 0.15s ease;
+    }
+
+    .btn-icon:hover {
+      background-color: var(--bg-subtle);
+      color: var(--text-primary);
+      border-color: var(--border-color);
+    }
+
+    .btn-icon:focus-visible {
+      outline: 2px solid var(--border-focus);
+      outline-offset: 1px;
+    }
+
+    /* Strength Meter */
+    .meter-section {
+      margin-top: 0.65rem;
+      padding-top: 0.65rem;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .meter-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 0.45rem;
+    }
+
+    .meter-status {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .strength-label {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: -0.01em;
+    }
+
+    .score-badge {
+      font-size: 0.75rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-weight: 600;
+      color: var(--text-muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .meter-bars {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 5px;
+      height: 7px;
+      margin-bottom: 0.55rem;
+    }
+
+    .meter-segment {
+      height: 100%;
+      background-color: var(--bg-subtle);
+      border-radius: 3px;
+      transition: background-color 0.2s ease;
+    }
+
+    /* Dynamic Banner */
+    .feedback-banner {
+      margin-top: 0.55rem;
+      padding: 0.5rem 0.75rem;
+      border-radius: var(--radius-md);
+      background-color: var(--bg-subtle);
+      border: 1px solid var(--border-color);
+      font-size: 0.785rem;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+
+    .feedback-banner.warning {
+      background-color: #fffbeb;
+      border-color: #fde68a;
+      color: #92400e;
+    }
+
+    .feedback-banner.danger {
+      background-color: #fef2f2;
+      border-color: #fecaca;
+      color: #991b1b;
+    }
+
+    .feedback-banner.success {
+      background-color: #f0fdf4;
+      border-color: #bbf7d0;
+      color: #166534;
+    }
+
+    .feedback-icon {
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .feedback-content ul {
+      margin-top: 0.2rem;
+      padding-left: 1.1rem;
+    }
+
+    .feedback-content li {
+      margin-bottom: 0.1rem;
+    }
+
+    /* Warning Banner for Common Passwords */
+    .alert-box {
+      margin-top: 0.55rem;
+      padding: 0.5rem 0.75rem;
+      border-radius: var(--radius-md);
+      background-color: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #991b1b;
+      font-size: 0.785rem;
+      display: none;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+
+    .alert-box.active {
+      display: flex;
+    }
+
+    /* Main Grid for Two Columns */
+    .analyzer-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+      align-items: start;
+    }
+
+    .col-main, .col-side {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    @media (max-width: 960px) {
+      .analyzer-grid {
+        grid-template-columns: 1fr;
+      }
+      .password-field {
+        padding-right: 6.5rem;
+      }
+    }
+
+    /* Checklist */
+    .checklist {
+      list-style: none;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.4rem;
+    }
+
+    @media (max-width: 600px) {
+      .checklist {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .checklist-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.45rem;
+      padding: 0.4rem 0.5rem;
+      border-radius: var(--radius-sm);
+      background-color: var(--bg-page);
+      border: 1px solid var(--border-color);
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      transition: all 0.15s ease;
+    }
+
+    .checklist-item.pass {
+      border-color: var(--border-strong);
+      background-color: #f0fdf4;
+      color: #14532d;
+    }
+
+    .checklist-item.fail {
+      border-color: var(--border-weak);
+      background-color: #fff1f2;
+      color: #881337;
+    }
+
+    .checklist-item.neutral {
+      color: var(--text-muted);
+    }
+
+    .check-icon {
+      width: 15px;
+      height: 15px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    /* Stats Grid */
+    .stats-table {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.45rem;
+    }
+
+    @media (max-width: 600px) {
+      .stats-table {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .stat-box {
+      background: var(--bg-page);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 0.45rem 0.65rem;
+    }
+
+    .stat-label {
+      font-size: 0.7rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 0.15rem;
+    }
+
+    .stat-value {
+      font-size: 1.15rem;
+      font-weight: 700;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      color: var(--text-primary);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .stat-hint {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      margin-top: 0.1rem;
+    }
+
+    /* Generator Controls */
+    .gen-control-group {
+      margin-bottom: 0.65rem;
+    }
+
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.775rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 0.35rem;
+    }
+
+    .slider-val {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-weight: 700;
+      color: var(--text-primary);
+      background: var(--bg-subtle);
+      padding: 0.05rem 0.4rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+      font-size: 0.75rem;
+    }
+
+    .range-slider {
+      width: 100%;
+      height: 5px;
+      background: var(--border-color);
+      border-radius: 4px;
+      outline: none;
+      accent-color: #0f172a;
+      cursor: pointer;
+    }
+
+    .checkbox-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.4rem;
+      margin-bottom: 0.75rem;
+    }
+
+    @media (max-width: 1200px) {
+      .checkbox-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .check-label {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      cursor: pointer;
+      user-select: none;
+      padding: 0.35rem 0.5rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+      background: var(--bg-page);
+      transition: background 0.15s ease;
+    }
+
+    .check-label:hover {
+      background: var(--bg-subtle);
+    }
+
+    .check-label input[type="checkbox"] {
+      accent-color: #0f172a;
+      width: 14px;
+      height: 14px;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      width: 100%;
+      height: 38px;
+      background: #0f172a;
+      color: #ffffff;
+      border: none;
+      border-radius: var(--radius-md);
+      font-size: 0.825rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      transition: background-color 0.15s ease;
+    }
+
+    .btn-primary:hover {
+      background: #1e293b;
+    }
+
+    .btn-primary:focus-visible {
+      outline: 2px solid var(--border-focus);
+      outline-offset: 2px;
+    }
+
+    .gen-error {
+      color: #dc2626;
+      font-size: 0.75rem;
+      margin-top: 0.4rem;
+      display: none;
+    }
+
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      background: #0f172a;
+      color: #ffffff;
+      padding: 0.75rem 1.25rem;
+      border-radius: var(--radius-md);
+      font-size: 0.825rem;
+      font-weight: 500;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transform: translateY(150%);
+      opacity: 0;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+      z-index: 9999;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <div class="brand-group">
+        <div class="brand-icon" aria-hidden="true">
+          <!-- Shield Icon -->
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>Password Strength Analyzer</h1>
+          <p>Check how strong and secure your password is</p>
+        </div>
+      </div>
+      <div class="privacy-tag">
+        <!-- Lock Icon -->
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+        <span>100% Private · Stays in your browser</span>
+      </div>
+    </header>
+
+    <!-- Two-Column Side-by-Side Dashboard Layout -->
+    <div class="analyzer-grid">
+      <!-- Left Column: Password Test & Password Generator -->
+      <div class="col-main">
+        <!-- Password Input Card -->
+        <section class="card" aria-labelledby="input-heading">
+          <h2 id="input-heading" class="card-title">
+            <span>Check Your Password</span>
+          </h2>
+          <p class="card-subtitle">Type a password or generate one below to check how strong it is.</p>
+
+          <label for="password-input" class="input-label">Password</label>
+          <div class="input-group">
+            <input 
+              type="password" 
+              id="password-input" 
+              class="password-field" 
+              placeholder="Type a password here..." 
+              autocomplete="off" 
+              autocapitalize="off" 
+              spellcheck="false"
+              aria-describedby="strength-text"
+            />
+            <div class="input-actions">
+              <button type="button" id="toggle-pwd-btn" class="btn-icon" aria-label="Show password" title="Toggle Show/Hide">
+                <svg id="eye-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+                <span id="toggle-pwd-text">Show</span>
+              </button>
+              <button type="button" id="copy-pwd-btn" class="btn-icon" aria-label="Copy password to clipboard" title="Copy to Clipboard">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                </svg>
+                <span>Copy</span>
+              </button>
+              <button type="button" id="clear-pwd-btn" class="btn-icon" aria-label="Clear password and reset" title="Clear Field">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <line x1="18" y1="6" x2="6" y2="18"/>
+                  <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+                <span>Clear</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Strength Meter -->
+          <div class="meter-section">
+            <div class="meter-header">
+              <div class="meter-status">
+                <span id="strength-text" class="strength-label">No password entered</span>
+                <span id="score-text" class="score-badge">Score: 0 / 100</span>
+              </div>
+            </div>
+
+            <div class="meter-bars" role="progressbar" id="strength-meter" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-label="Password strength meter">
+              <div class="meter-segment" id="seg-1"></div>
+              <div class="meter-segment" id="seg-2"></div>
+              <div class="meter-segment" id="seg-3"></div>
+              <div class="meter-segment" id="seg-4"></div>
+              <div class="meter-segment" id="seg-5"></div>
+            </div>
+          </div>
+
+          <!-- Warning Callout if Common / Pattern -->
+          <div id="alert-banner" class="alert-box" role="alert">
+            <svg class="feedback-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <div id="alert-message">
+              <strong>Warning:</strong> This password is very common and easy to guess.
+            </div>
+          </div>
+
+          <!-- Feedback Suggestions Box -->
+          <div id="feedback-banner" class="feedback-banner">
+            <svg class="feedback-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="16" x2="12" y2="12"/>
+              <line x1="12" y1="8" x2="12.01" y2="8"/>
+            </svg>
+            <div class="feedback-content" id="feedback-content">
+              Type a password above or generate one to see tips.
+            </div>
+          </div>
+        </section>
+
+        <!-- Strong Password Generator Card -->
+        <section class="card" aria-labelledby="generator-heading">
+          <h2 id="generator-heading" class="card-title">
+            <span>Password Generator</span>
+          </h2>
+          <p class="card-subtitle">Create a strong, random password instantly.</p>
+
+          <div class="gen-control-group">
+            <div class="slider-header">
+              <label for="gen-length">Password Length</label>
+              <span id="slider-length-val" class="slider-val">16</span>
+            </div>
+            <input type="range" id="gen-length" class="range-slider" min="8" max="64" value="16" />
+          </div>
+
+          <div class="checkbox-grid">
+            <label class="check-label">
+              <input type="checkbox" id="gen-opt-upper" checked />
+              <span>Capital (A–Z)</span>
+            </label>
+            <label class="check-label">
+              <input type="checkbox" id="gen-opt-lower" checked />
+              <span>Small (a–z)</span>
+            </label>
+            <label class="check-label">
+              <input type="checkbox" id="gen-opt-numbers" checked />
+              <span>Numbers (0–9)</span>
+            </label>
+            <label class="check-label">
+              <input type="checkbox" id="gen-opt-symbols" checked />
+              <span>Symbols (!@#$)</span>
+            </label>
+          </div>
+
+          <button type="button" id="generate-btn" class="btn-primary">
+            <!-- Dice / Key SVG -->
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/>
+              <circle cx="15.5" cy="8.5" r="1.5"/>
+              <circle cx="15.5" cy="15.5" r="1.5"/>
+              <circle cx="8.5" cy="15.5" r="1.5"/>
+            </svg>
+            <span>Generate Password</span>
+          </button>
+          <div id="gen-error" class="gen-error">Please check at least one box above.</div>
+        </section>
+      </div>
+
+      <!-- Right Column: Security Checklist & Character Details -->
+      <div class="col-side">
+        <!-- Requirements Checklist Card -->
+        <section class="card" aria-labelledby="checklist-heading">
+          <h2 id="checklist-heading" class="card-title">
+            <span>Security Checklist</span>
+          </h2>
+          <p class="card-subtitle">Checks updated automatically as you type.</p>
+
+          <ul class="checklist" id="criteria-checklist">
+            <!-- 1. Length >= 8 -->
+            <li class="checklist-item neutral" id="crit-len8">
+              <span class="check-icon" aria-hidden="true"></span>
+              <div>
+                <strong>At least 8 characters</strong>
+                <div class="card-subtitle" style="margin-bottom:0">Standard minimum</div>
+              </div>
+            </li>
+            <!-- 2. Length >= 12 -->
+            <li class="checklist-item neutral" id="crit-len12">
+              <span class="check-icon" aria-hidden="true"></span>
+              <div>
+                <strong>At least 12 characters</strong>
+                <div class="card-subtitle" style="margin-bottom:0">Recommended length</div>
+              </div>
+            </li>
+            <!-- 3. Uppercase -->
+            <li class="checklist-item neutral" id="crit-upper">
+              <span class="check-icon" aria-hidden="true"></span>
+              <div>
+                <strong>Capital letters (A–Z)</strong>
+                <div class="card-subtitle" style="margin-bottom:0">Uppercase letter</div>
+              </div>
+            </li>
+            <!-- 4. Lowercase -->
+            <li class="checklist-item neutral" id="crit-lower">
+              <span class="check-icon" aria-hidden="true"></span>
+              <div>
+                <strong>Small letters (a–z)</strong>
+                <div class="card-subtitle" style="margin-bottom:0">Lowercase letter</div>
+              </div>
+            </li>
+            <!-- 5. Numbers -->
+            <li class="checklist-item neutral" id="crit-num">
+              <span class="check-icon" aria-hidden="true"></span>
+              <div>
+                <strong>Numbers (0–9)</strong>
+                <div class="card-subtitle" style="margin-bottom:0">Numeric digit</div>
+              </div>
+            </li>
+            <!-- 6. Special Symbols -->
+            <li class="checklist-item neutral" id="crit-sym">
+              <span class="check-icon" aria-hidden="true"></span>
+              <div>
+                <strong>Symbols (!@#$%^&*)</strong>
+                <div class="card-subtitle" style="margin-bottom:0">Special character</div>
+              </div>
+            </li>
+            <!-- 7. Not in common list -->
+            <li class="checklist-item neutral" id="crit-common">
+              <span class="check-icon" aria-hidden="true"></span>
+              <div>
+                <strong>Not common password</strong>
+                <div class="card-subtitle" style="margin-bottom:0">Not easy to guess</div>
+              </div>
+            </li>
+            <!-- 8. No simple repeats or sequences -->
+            <li class="checklist-item neutral" id="crit-seq">
+              <span class="check-icon" aria-hidden="true"></span>
+              <div>
+                <strong>No patterns or repeats</strong>
+                <div class="card-subtitle" style="margin-bottom:0">No 1234, abcd, aaaa</div>
+              </div>
+            </li>
+          </ul>
+        </section>
+
+        <!-- Character Details Card -->
+        <section class="card" aria-labelledby="metrics-heading">
+          <h2 id="metrics-heading" class="card-title">
+            <span>Character Details</span>
+          </h2>
+          <p class="card-subtitle">What your password is made of.</p>
+
+          <div class="stats-table">
+            <div class="stat-box">
+              <div class="stat-label">Total Length</div>
+              <div class="stat-value" id="stat-len">0</div>
+              <div class="stat-hint">Characters</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Capital Letters</div>
+              <div class="stat-value" id="stat-upper">0</div>
+              <div class="stat-hint">A–Z</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Small Letters</div>
+              <div class="stat-value" id="stat-lower">0</div>
+              <div class="stat-hint">a–z</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Numbers</div>
+              <div class="stat-value" id="stat-nums">0</div>
+              <div class="stat-hint">0–9</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Symbols</div>
+              <div class="stat-value" id="stat-symbols">0</div>
+              <div class="stat-hint">!@#$ and spaces</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Types Used</div>
+              <div class="stat-value" id="stat-pool">0 / 4</div>
+              <div class="stat-hint">Out of 4 types</div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast" class="toast" role="status" aria-live="polite">
+    <svg id="toast-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="20 6 9 17 4 12"/>
+    </svg>
+    <span id="toast-message">Copied to clipboard</span>
+  </div>
+
+  <!-- Application Logic (Vanilla JavaScript) -->
+  <script>
+    (function () {
+      'use strict';
+
+      // --- SVG Helper Templates ---
+      const SVG_CHECK = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>`;
+      const SVG_FAIL = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>`;
+      const SVG_NEUTRAL = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+          <circle cx="12" cy="12" r="6"/>
+        </svg>`;
+
+      // --- Local Common Weak Passwords List ---
+      // Standard offline sample of the most common breached & predictable passwords
+      const COMMON_PASSWORDS = new Set([
+        '123456', 'password', '123456789', '12345', 'qwerty', '12345678', '111111', '1234567',
+        'dragon', 'welcome', 'admin', 'monkey', 'master', 'sunshine', 'princess', 'football',
+        'baseball', 'shadow', 'killer', 'hunter', 'solo', 'superman', 'passw0rd', 'p@ssword',
+        'trustno1', 'iloveyou', 'letmein', 'starwars', 'freedom', 'whatever', 'secret', 'login',
+        'guest', 'system', 'security', 'access', 'computer', 'orange', 'internet', 'charlie',
+        'mustang', 'michael', 'hockey', 'soccer', 'batman', 'jessica', 'pokemon', 'matrix',
+        'testing', 'default', 'root', 'qwertyuiop', 'asdfghjkl', 'zxcvbnm', 'password1',
+        '123123', '654321', '000000', '987654321', '112233', '121212', 'abc123', 'admin123',
+        'pass1234', 'qwerty123', 'changeme', 'user', 'test', 'master123', 'ninja', 'secret123'
+      ]);
+
+      // --- DOM Elements ---
+      const passwordInput = document.getElementById('password-input');
+      const togglePwdBtn = document.getElementById('toggle-pwd-btn');
+      const togglePwdText = document.getElementById('toggle-pwd-text');
+      const copyPwdBtn = document.getElementById('copy-pwd-btn');
+      const clearPwdBtn = document.getElementById('clear-pwd-btn');
+      
+      const strengthText = document.getElementById('strength-text');
+      const scoreText = document.getElementById('score-text');
+      const strengthMeter = document.getElementById('strength-meter');
+      const segments = [
+        document.getElementById('seg-1'),
+        document.getElementById('seg-2'),
+        document.getElementById('seg-3'),
+        document.getElementById('seg-4'),
+        document.getElementById('seg-5')
+      ];
+
+      const alertBanner = document.getElementById('alert-banner');
+      const alertMessage = document.getElementById('alert-message');
+      const feedbackBanner = document.getElementById('feedback-banner');
+      const feedbackContent = document.getElementById('feedback-content');
+
+      // Checklist items
+      const critLen8 = document.getElementById('crit-len8');
+      const critLen12 = document.getElementById('crit-len12');
+      const critUpper = document.getElementById('crit-upper');
+      const critLower = document.getElementById('crit-lower');
+      const critNum = document.getElementById('crit-num');
+      const critSym = document.getElementById('crit-sym');
+      const critCommon = document.getElementById('crit-common');
+      const critSeq = document.getElementById('crit-seq');
+
+      // Metric stat values
+      const statLen = document.getElementById('stat-len');
+      const statUpper = document.getElementById('stat-upper');
+      const statLower = document.getElementById('stat-lower');
+      const statNums = document.getElementById('stat-nums');
+      const statSymbols = document.getElementById('stat-symbols');
+      const statPool = document.getElementById('stat-pool');
+
+      // Generator controls
+      const genLength = document.getElementById('gen-length');
+      const sliderLengthVal = document.getElementById('slider-length-val');
+      const genOptUpper = document.getElementById('gen-opt-upper');
+      const genOptLower = document.getElementById('gen-opt-lower');
+      const genOptNumbers = document.getElementById('gen-opt-numbers');
+      const genOptSymbols = document.getElementById('gen-opt-symbols');
+      const generateBtn = document.getElementById('generate-btn');
+      const genError = document.getElementById('gen-error');
+
+      // Toast
+      const toast = document.getElementById('toast');
+      const toastMessage = document.getElementById('toast-message');
+      let toastTimer = null;
+
+      // --- Utility Functions ---
+      function showToast(msg, isError = false) {
+        if (toastTimer) clearTimeout(toastTimer);
+        toastMessage.textContent = msg;
+        toast.style.backgroundColor = isError ? '#dc2626' : '#0f172a';
+        toast.classList.add('show');
+        toastTimer = setTimeout(() => {
+          toast.classList.remove('show');
+        }, 2200);
+      }
+
+      // --- Pattern Detection Functions ---
+      function hasRepeatedChars(str) {
+        if (!str || str.length < 3) return false;
+        // Check for 3 or more identical consecutive characters (e.g. aaa, 111)
+        for (let i = 0; i < str.length - 2; i++) {
+          if (str[i] === str[i + 1] && str[i] === str[i + 2]) {
+            return true;
+          }
+        }
+        // Check if string consists almost entirely of 1 or 2 unique characters
+        const uniqueCount = new Set(str).size;
+        if (str.length >= 5 && uniqueCount <= 2) {
+          return true;
+        }
+        return false;
+      }
+
+      function hasSequentialPattern(str) {
+        if (!str || str.length < 3) return false;
+        const lower = str.toLowerCase();
+
+        // 1. Check numeric sequences (forward & backward) like 1234, 4321
+        for (let i = 0; i < lower.length - 2; i++) {
+          const c1 = lower.charCodeAt(i);
+          const c2 = lower.charCodeAt(i + 1);
+          const c3 = lower.charCodeAt(i + 2);
+          // 0-9 ascii 48 to 57
+          if (c1 >= 48 && c1 <= 57 && c2 >= 48 && c2 <= 57 && c3 >= 48 && c3 <= 57) {
+            if ((c2 === c1 + 1 && c3 === c2 + 1) || (c2 === c1 - 1 && c3 === c2 - 1)) {
+              return true;
+            }
+          }
+          // 2. Check alphabetical sequences (forward & backward) like abc, cba
+          if (c1 >= 97 && c1 <= 122 && c2 >= 97 && c2 <= 122 && c3 >= 97 && c3 <= 122) {
+            if ((c2 === c1 + 1 && c3 === c2 + 1) || (c2 === c1 - 1 && c3 === c2 - 1)) {
+              return true;
+            }
+          }
+        }
+
+        // 3. Check common keyboard runs
+        const keyboardRuns = [
+          'qwerty', 'asdfgh', 'zxcvbn', 'qwer', 'wert', 'erty', 'rtyu', 'tyui', 'yuio', 'uiop',
+          'asdf', 'sdfg', 'dfgh', 'fghj', 'ghjk', 'hjkl', 'zxcv', 'xcvb', 'cvbn', 'vbnm'
+        ];
+        for (const run of keyboardRuns) {
+          if (lower.includes(run)) return true;
+        }
+
+        return false;
+      }
+
+      function checkCommonPassword(str) {
+        if (!str) return false;
+        const lower = str.toLowerCase().trim();
+        if (COMMON_PASSWORDS.has(lower)) return true;
+        
+        // Obvious word containment in short-medium passwords
+        const obviousWords = ['password', 'admin', 'qwerty', '123456', 'welcome', 'letmein'];
+        for (const word of obviousWords) {
+          if (lower.length <= 14 && lower.includes(word)) {
+            return true;
+          }
+        }
+        return false;
+      }
+
+      // --- Core Password Evaluation Engine ---
+      function analyzePassword(pwd) {
+        // Safe length using code points (Unicode-safe)
+        const codePoints = Array.from(pwd);
+        const len = codePoints.length;
+
+        // Reset to neutral if empty
+        if (len === 0) {
+          updateUIForEmpty();
+          return;
+        }
+
+        // Count character distributions
+        let upperCount = 0;
+        let lowerCount = 0;
+        let numCount = 0;
+        let symCount = 0;
+
+        for (const char of codePoints) {
+          if (/[A-Z]/.test(char)) {
+            upperCount++;
+          } else if (/[a-z]/.test(char)) {
+            lowerCount++;
+          } else if (/[0-9]/.test(char)) {
+            numCount++;
+          } else {
+            // Any character not ASCII letter or digit (symbols, spaces, punctuation, unicode)
+            symCount++;
+          }
+        }
+
+        // Criteria evaluations
+        const passLen8 = len >= 8;
+        const passLen12 = len >= 12;
+        const passUpper = upperCount > 0;
+        const passLower = lowerCount > 0;
+        const passNum = numCount > 0;
+        const passSym = symCount > 0;
+
+        const isCommon = checkCommonPassword(pwd);
+        const hasSeq = hasSequentialPattern(pwd);
+        const hasRep = hasRepeatedChars(pwd);
+
+        const passCommon = !isCommon;
+        const passSeq = !hasSeq && !hasRep;
+
+        // Calculate Character Pool Size R
+        let poolSize = 0;
+        if (lowerCount > 0) poolSize += 26;
+        if (upperCount > 0) poolSize += 26;
+        if (numCount > 0) poolSize += 10;
+        if (symCount > 0) poolSize += 33;
+
+        // Calculate Entropy H = L * log2(R)
+        let entropy = 0;
+        if (poolSize > 0 && len > 0) {
+          entropy = len * Math.log2(poolSize);
+          // Apply entropy penalty if repetitive or sequential
+          if (hasSeq) entropy = Math.max(0, entropy * 0.7);
+          if (hasRep) entropy = Math.max(0, entropy * 0.6);
+          if (isCommon) entropy = Math.max(0, entropy * 0.3);
+        }
+
+        // --- Rule-Based Scoring Algorithm ---
+        let score = 0;
+
+        // 1. Length baseline
+        if (len < 6) {
+          score += 5;
+        } else if (len < 8) {
+          score += 15;
+        } else if (len < 12) {
+          score += 30;
+        } else if (len < 16) {
+          score += 45;
+        } else {
+          score += 55;
+          if (len >= 20) score += 5;
+        }
+
+        // 2. Character Variety Additions
+        if (passUpper) score += 10;
+        if (upperCount >= 2) score += 5;
+
+        if (passLower) score += 10;
+        if (lowerCount >= 2) score += 5;
+
+        if (passNum) score += 10;
+        if (numCount >= 2) score += 5;
+
+        if (passSym) score += 15;
+        if (symCount >= 2) score += 5;
+
+        // 3. Heuristic Deductions & Penalties
+        // Only letters or only numbers
+        if ((passUpper || passLower) && !passNum && !passSym) score -= 20;
+        if (passNum && !passUpper && !passLower && !passSym) score -= 25;
+
+        // Repetitive or sequential patterns
+        if (hasRep) score -= 15;
+        if (hasSeq) score -= 15;
+
+        // Common dictionary word penalty
+        if (isCommon) score -= 35;
+
+        // 4. Hard safety caps
+        // Under 8 characters cannot exceed 40 (Weak)
+        if (len < 8) {
+          score = Math.min(score, 40);
+        }
+        // Under 12 characters cannot exceed 72 (Medium)
+        else if (len < 12) {
+          score = Math.min(score, 72);
+        }
+        // If common password, cannot exceed 20
+        if (isCommon) {
+          score = Math.min(score, 20);
+        }
+
+        // Clamp between 0 and 100
+        score = Math.max(0, Math.min(100, score));
+
+        // --- Determine Strength Label & Segments ---
+        let strengthLabel = 'Very Weak';
+        let activeSegments = 1;
+        let themeColor = 'var(--color-vweak)';
+        let tierClass = 'danger';
+
+        if (score <= 25) {
+          strengthLabel = 'Very Weak';
+          activeSegments = 1;
+          themeColor = 'var(--color-vweak)';
+          tierClass = 'danger';
+        } else if (score <= 50) {
+          strengthLabel = 'Weak';
+          activeSegments = 2;
+          themeColor = 'var(--color-weak)';
+          tierClass = 'danger';
+        } else if (score <= 70) {
+          strengthLabel = 'Medium';
+          activeSegments = 3;
+          themeColor = 'var(--color-medium)';
+          tierClass = 'warning';
+        } else if (score <= 85) {
+          strengthLabel = 'Strong';
+          activeSegments = 4;
+          themeColor = 'var(--color-strong)';
+          tierClass = 'success';
+        } else {
+          strengthLabel = 'Very Strong';
+          activeSegments = 5;
+          themeColor = 'var(--color-vstrong)';
+          tierClass = 'success';
+        }
+
+        // --- Update UI ---
+        // 1. Meter & Labels
+        strengthText.textContent = strengthLabel;
+        strengthText.style.color = themeColor;
+        scoreText.textContent = `Score: ${score} / 100`;
+        strengthMeter.setAttribute('aria-valuenow', score);
+
+        segments.forEach((seg, index) => {
+          if (index < activeSegments) {
+            seg.style.backgroundColor = themeColor;
+          } else {
+            seg.style.backgroundColor = 'var(--bg-subtle)';
+          }
+        });
+
+        // 2. Checklist Items
+        updateChecklistItem(critLen8, passLen8);
+        updateChecklistItem(critLen12, passLen12);
+        updateChecklistItem(critUpper, passUpper);
+        updateChecklistItem(critLower, passLower);
+        updateChecklistItem(critNum, passNum);
+        updateChecklistItem(critSym, passSym);
+        updateChecklistItem(critCommon, passCommon);
+        updateChecklistItem(critSeq, passSeq);
+
+        // 3. Stats
+        const typesUsed = (upperCount > 0 ? 1 : 0) + (lowerCount > 0 ? 1 : 0) + (numCount > 0 ? 1 : 0) + (symCount > 0 ? 1 : 0);
+        statLen.textContent = len;
+        statUpper.textContent = upperCount;
+        statLower.textContent = lowerCount;
+        statNums.textContent = numCount;
+        statSymbols.textContent = symCount;
+        statPool.textContent = `${typesUsed} / 4`;
+
+        // 4. Warning Callout
+        if (isCommon) {
+          alertBanner.classList.add('active');
+          alertMessage.innerHTML = '<strong>Warning:</strong> This is a very common password that anyone could easily guess.';
+        } else if (hasSeq || hasRep) {
+          alertBanner.classList.add('active');
+          alertMessage.innerHTML = '<strong>Warning:</strong> Avoid simple patterns like 123, abc, qwerty, or repeating letters.';
+        } else {
+          alertBanner.classList.remove('active');
+        }
+
+        // 5. Actionable Feedback List
+        buildFeedbackList(len, upperCount, lowerCount, numCount, symCount, isCommon, hasSeq, hasRep, score);
+      }
+
+      function updateChecklistItem(itemEl, isPass) {
+        const iconSpan = itemEl.querySelector('.check-icon');
+        itemEl.classList.remove('neutral', 'pass', 'fail');
+        if (isPass) {
+          itemEl.classList.add('pass');
+          iconSpan.innerHTML = SVG_CHECK;
+        } else {
+          itemEl.classList.add('fail');
+          iconSpan.innerHTML = SVG_FAIL;
+        }
+      }
+
+      function buildFeedbackList(len, upper, lower, num, sym, isCommon, hasSeq, hasRep, score) {
+        const suggestions = [];
+
+        if (len < 8) {
+          suggestions.push('Make your password at least 8 characters long (12 or more is best).');
+        } else if (len < 12) {
+          suggestions.push('Make it 12 characters or longer for extra security.');
+        }
+
+        if (upper === 0) suggestions.push('Add capital letters (A–Z).');
+        if (lower === 0) suggestions.push('Add small letters (a–z).');
+        if (num === 0) suggestions.push('Add numbers (0–9).');
+        if (sym === 0) suggestions.push('Add symbols (like !, @, #, $).');
+        if (isCommon) suggestions.push('Avoid common words and simple passwords.');
+        if (hasSeq) suggestions.push('Avoid sequences like 123, abc, or qwerty.');
+        if (hasRep) suggestions.push('Avoid repeating the same letter or number (like aaaa).');
+
+        feedbackBanner.className = 'feedback-banner';
+
+        if (suggestions.length === 0) {
+          feedbackBanner.classList.add('success');
+          feedbackContent.innerHTML = '<strong>Great password!</strong> It meets all security checks and is hard to guess.';
+        } else {
+          if (score <= 50) {
+            feedbackBanner.classList.add('danger');
+          } else {
+            feedbackBanner.classList.add('warning');
+          }
+          let html = '<strong>Tips to make it stronger:</strong><ul>';
+          suggestions.forEach(item => {
+            html += `<li>${item}</li>`;
+          });
+          html += '</ul>';
+          feedbackContent.innerHTML = html;
+        }
+      }
+
+      function updateUIForEmpty() {
+        strengthText.textContent = 'No password entered';
+        strengthText.style.color = 'var(--text-muted)';
+        scoreText.textContent = 'Score: 0 / 100';
+        strengthMeter.setAttribute('aria-valuenow', 0);
+
+        segments.forEach(seg => {
+          seg.style.backgroundColor = 'var(--bg-subtle)';
+        });
+
+        // Set all checklist items to neutral
+        [critLen8, critLen12, critUpper, critLower, critNum, critSym, critCommon, critSeq].forEach(item => {
+          item.classList.remove('pass', 'fail');
+          item.classList.add('neutral');
+          item.querySelector('.check-icon').innerHTML = SVG_NEUTRAL;
+        });
+
+        // Reset stats
+        statLen.textContent = '0';
+        statUpper.textContent = '0';
+        statLower.textContent = '0';
+        statNums.textContent = '0';
+        statSymbols.textContent = '0';
+        statPool.textContent = '0 / 4';
+
+        // Hide alerts & reset feedback
+        alertBanner.classList.remove('active');
+        feedbackBanner.className = 'feedback-banner';
+        feedbackContent.textContent = 'Type a password above or generate one to see tips.';
+      }
+
+      // --- Cryptographically Secure Password Generator ---
+      // Uses crypto.getRandomValues() with rejection sampling to eliminate modulo bias
+      function getCryptoRandomChar(charset) {
+        const n = charset.length;
+        const maxUnbiased = Math.floor(256 / n) * n;
+        const buffer = new Uint8Array(1);
+
+        while (true) {
+          window.crypto.getRandomValues(buffer);
+          if (buffer[0] < maxUnbiased) {
+            return charset[buffer[0] % n];
+          }
+        }
+      }
+
+      // Cryptographically secure Fisher-Yates array shuffle
+      function secureShuffle(arr) {
+        const result = arr.slice();
+        for (let i = result.length - 1; i > 0; i--) {
+          const maxUnbiased = Math.floor(256 / (i + 1)) * (i + 1);
+          const buffer = new Uint8Array(1);
+          let j = 0;
+          while (true) {
+            window.crypto.getRandomValues(buffer);
+            if (buffer[0] < maxUnbiased) {
+              j = buffer[0] % (i + 1);
+              break;
+            }
+          }
+          const temp = result[i];
+          result[i] = result[j];
+          result[j] = temp;
+        }
+        return result;
+      }
+
+      function generateStrongPassword() {
+        const targetLen = parseInt(genLength.value, 10) || 16;
+        const useUpper = genOptUpper.checked;
+        const useLower = genOptLower.checked;
+        const useNumbers = genOptNumbers.checked;
+        const useSymbols = genOptSymbols.checked;
+
+        if (!useUpper && !useLower && !useNumbers && !useSymbols) {
+          genError.style.display = 'block';
+          return;
+        }
+        genError.style.display = 'none';
+
+        const upperSet = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // Exclude visually ambiguous I, O optionally or full set
+        const fullUpper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        const fullLower = 'abcdefghijklmnopqrstuvwxyz';
+        const fullNumbers = '0123456789';
+        const fullSymbols = '!@#$%^&*()_+-=[]{}|;:,.<>?';
+
+        const pools = [];
+        const guaranteed = [];
+
+        if (useUpper) {
+          pools.push(fullUpper);
+          guaranteed.push(getCryptoRandomChar(fullUpper));
+        }
+        if (useLower) {
+          pools.push(fullLower);
+          guaranteed.push(getCryptoRandomChar(fullLower));
+        }
+        if (useNumbers) {
+          pools.push(fullNumbers);
+          guaranteed.push(getCryptoRandomChar(fullNumbers));
+        }
+        if (useSymbols) {
+          pools.push(fullSymbols);
+          guaranteed.push(getCryptoRandomChar(fullSymbols));
+        }
+
+        const combinedPool = pools.join('');
+        const chars = guaranteed.slice();
+
+        // Fill remaining length
+        while (chars.length < targetLen) {
+          chars.push(getCryptoRandomChar(combinedPool));
+        }
+
+        // Shuffle cryptographically to avoid predictable character positions
+        const shuffled = secureShuffle(chars);
+        const generatedPassword = shuffled.join('');
+
+        // Populate field and execute analysis
+        passwordInput.value = generatedPassword;
+        analyzePassword(generatedPassword);
+        showToast('New password generated');
+      }
+
+      // --- Clipboard Copy Handler with Graceful Fallback ---
+      async function handleCopy() {
+        const pwd = passwordInput.value;
+        if (!pwd) {
+          showToast('No password to copy', true);
+          return;
+        }
+
+        let copied = false;
+
+        // 1. Modern Navigator Clipboard API
+        if (navigator.clipboard && window.isSecureContext) {
+          try {
+            await navigator.clipboard.writeText(pwd);
+            copied = true;
+          } catch (err) {
+            copied = false;
+          }
+        }
+
+        // 2. Fallback using execCommand
+        if (!copied) {
+          try {
+            const textarea = document.createElement('textarea');
+            textarea.value = pwd;
+            textarea.style.position = 'fixed';
+            textarea.style.left = '-9999px';
+            textarea.style.top = '-9999px';
+            textarea.setAttribute('readonly', '');
+            document.body.appendChild(textarea);
+            textarea.select();
+            copied = document.execCommand('copy');
+            document.body.removeChild(textarea);
+          } catch (e) {
+            copied = false;
+          }
+        }
+
+        if (copied) {
+          showToast('Password copied!');
+        } else {
+          showToast('Could not copy to clipboard', true);
+        }
+      }
+
+      // --- Event Listeners ---
+      passwordInput.addEventListener('input', function (e) {
+        analyzePassword(e.target.value);
+      });
+
+      // Show / Hide Password Toggle
+      togglePwdBtn.addEventListener('click', function () {
+        const isPassword = passwordInput.type === 'password';
+        passwordInput.type = isPassword ? 'text' : 'password';
+        togglePwdText.textContent = isPassword ? 'Hide' : 'Show';
+        togglePwdBtn.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+      });
+
+      // Clear Button
+      clearPwdBtn.addEventListener('click', function () {
+        passwordInput.value = '';
+        analyzePassword('');
+        passwordInput.focus();
+        showToast('Cleared');
+      });
+
+      // Copy Button
+      copyPwdBtn.addEventListener('click', handleCopy);
+
+      // Generator Length Slider
+      genLength.addEventListener('input', function (e) {
+        sliderLengthVal.textContent = e.target.value;
+      });
+
+      // Checkboxes change to clear error
+      [genOptUpper, genOptLower, genOptNumbers, genOptSymbols].forEach(chk => {
+        chk.addEventListener('change', () => {
+          if (genOptUpper.checked || genOptLower.checked || genOptNumbers.checked || genOptSymbols.checked) {
+            genError.style.display = 'none';
+          }
+        });
+      });
+
+      // Generate Button
+      generateBtn.addEventListener('click', generateStrongPassword);
+
+      // Initial state on page load
+      updateUIForEmpty();
+
+    })();
+  </script>
+</body>
+</html>
